@@ -1,0 +1,81 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# .NET
+bin/
+obj/
+.vs/
+*.sln.iml
+
+# Build
+dist/
+build/
+.next/
+out/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# Logs
+*.log
+logs/
+Logs/
+*.tmp
+*.temp
+
+#Cache
+.eslintcache
+.stylelintcache
+
+# IDE
+Properties/
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# Environment (keep .env with abstract values, ignore local overrides)
+.env.local
+.env.production
+.env.*.local
+
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# Credentials
+captured_credentials.json
+credentials.json
+
+# SQLite
+app.db
+*.db
+
+# Keep appsettings.json (contains shared config, not secrets)
+!appsettings.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Linux
+.~
+.swp
+*~
