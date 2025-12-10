@@ -2,7 +2,7 @@
 
 ## ⚠️ Educational Purpose Only
 
-This lab demonstrates DNS spoofing + phishing attacks for **authorized security training only**. See [ETHICAL_DISCLAIMER](./ETHICAL_DISCLAIMER) for full legal terms.
+This lab demonstrates DNS spoofing + phishing attacks for **authorized security training only**. See [ETHICAL_DISCLAIMER](./ETHICAL_DISCLAIMER.md) for full legal terms.
 
 ---
 
@@ -316,4 +316,4 @@ Update CORS as well:
 
 ## License & Disclaimer
 
-**This lab is for authorized security training only.** Unauthorized access to computer systems is illegal under the Computer Fraud and Abuse Act (CFAA) and similar laws worldwide. See [ETHICAL_DISCLAIMER](./ETHICAL_DISCLAIMER) for full legal terms.
+**This lab is for authorized security training only.** Unauthorized access to computer systems is illegal under the Computer Fraud and Abuse Act (CFAA) and similar laws worldwide. See [ETHICAL_DISCLAIMER](./ETHICAL_DISCLAIMER.md) for full legal terms.
