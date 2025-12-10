@@ -61,6 +61,8 @@ credentials.json
 # SQLite
 app.db
 *.db
+*.db-shm
+*.db-wal
 
 # Keep appsettings.json (contains shared config, not secrets)
 !appsettings.json
