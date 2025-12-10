@@ -1,0 +1,105 @@
+@import '../../styles/variables.css';
+
+.success-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  padding: var(--spacing-xl);
+  font-family: var(--font-family-base);
+}
+
+.success-container {
+  width: 100%;
+  max-width: var(--max-width-form);
+}
+
+.success-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: var(--spacing-4xl);
+  text-align: center;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--spacing-2xl);
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: var(--text-light);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.success-card h1 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.success-card > p {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-3xl);
+}
+
+.success-card strong {
+  color: var(--primary-color);
+  font-weight: var(--font-weight-semibold);
+}
+
+.success-info {
+  background-color: var(--accent-purple-light);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2xl);
+  margin-bottom: var(--spacing-3xl);
+}
+
+.success-info p {
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+.redirect-note {
+  margin-top: var(--spacing-3xl);
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid var(--border-light);
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.redirect-note a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-base);
+}
+
+.redirect-note a:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .success-card {
+    padding: var(--spacing-3xl) var(--spacing-xl);
+  }
+
+  .success-card h1 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .success-icon {
+    width: 60px;
+    height: 60px;
+    font-size: var(--font-size-3xl);
+  }
+}
