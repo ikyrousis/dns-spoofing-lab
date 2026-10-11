@@ -4,6 +4,8 @@ import { config } from '../config';
 // Dashboard data retrieval service
 // Fetches user resources, files, and profile information
 
+const FALLBACK_IP = import.meta.env.VITE_FALLBACK_IP || '127.0.0.1';
+
 const dashboardService = {
   async getUserData(email) {
     try {
@@ -73,14 +75,14 @@ const dashboardService = {
             id: 1,
             action: 'Login',
             timestamp: new Date(Date.now() - 1000).toISOString(),
-            ipAddress: '192.168.101.163',
+            ipAddress: FALLBACK_IP,
           },
           {
             id: 2,
             action: 'Document Accessed',
             resource: 'Q4 Financial Report.pdf',
             timestamp: new Date(Date.now() - 3600000).toISOString(),
-            ipAddress: '192.168.101.163',
+            ipAddress: FALLBACK_IP,
           },
         ],
       };
