@@ -7,6 +7,7 @@ yarn.lock
 bin/
 obj/
 .vs/
+Properties/
 *.sln.iml
 
 # Build
@@ -18,41 +19,33 @@ out/
 [Oo]bj/
 [Ll]og/
 
-# Logs
+# Logs / temp files
 *.log
 logs/
 Logs/
 *.tmp
 *.temp
 
-#Cache
+# Caches
 .eslintcache
 .stylelintcache
 
 # IDE
-Properties/
 .vscode/
 .idea/
-.vs/
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
+.~
 *.sublime-project
 *.sublime-workspace
 
-# Environment (keep .env with abstract values, ignore local overrides)
-.env.local
-.env.production
-.env.*.local
-
-
 # OS
 .DS_Store
-Thumbs.db
 .AppleDouble
 .LSOverride
+Thumbs.db
+ehthumbs.db
 
 # Credentials
 captured_credentials.json
@@ -64,20 +57,5 @@ app.db
 *.db-shm
 *.db-wal
 
-# Keep appsettings.json (contains shared config, not secrets)
+# Shared config
 !appsettings.json
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-*.swp
-
-# Windows
-Thumbs.db
-ehthumbs.db
-
-# Linux
-.~
-.swp
-*~

