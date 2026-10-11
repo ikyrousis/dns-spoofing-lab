@@ -1,15 +1,18 @@
 # Phishing Demo Stack for DNS Spoofing Labs
 
-Four web services that act as the targets of a phishing demo in a DNS spoofing exercise:
+Four web services built for an educational phishing demo in a DNS spoofing lab:
 a real portal and its auth API, plus a phishing clone that captures credentials and
-redirects back to the real portal. DNS spoofing itself is external. Configure it with
-Ettercap or dnsmasq (see "Spoofing setup (external)" below).
+redirects back to the real portal. DNS spoofing itself is external to this stack
+and is carried out with tools such as Ettercap or dnsmasq.
+
+> **For educational purposes only.** Use it to learn how DNS spoofing works in an isolated
+> lab network you own and control - never against real domains, networks, or people.
 
 ## How to use it
 
 1. Start the four services (Quick start below).
 2. Map the target domain to the attacker IP with dnsmasq or Ettercap and point the
-   victim's DNS there (Spoofing setup below).
+   victim's DNS there.
 3. Browse to the domain on the victim VM. The attack flow below plays out and captured
    credentials land in `backend-malicious/captured_credentials.json`.
 
@@ -81,31 +84,11 @@ Configuration pitfalls:
    mismatch is the #1 "frontend can't connect" cause. The capture API allows all origins
    (hardcoded AllowAll in its Program.cs, by design).
 
-## Spoofing setup (external)
-
-Point the victim's DNS at the attacker machine, then map the target domain to it:
-
-```bash
-# dnsmasq on the attacker machine: zone example.lab to attacker IP, forward the rest
-dnsmasq --no-hosts --no-resolv --server=8.8.8.8 --address=/example.lab/192.168.1.150
-
-# or Ettercap with a /etc/etter.dns entry:  example.lab  A  192.168.1.150
-ettercap -T -M arp:remote /192.168.1.50// /192.168.1.1//
-```
-
-Verify on the victim VM: `nslookup example.lab` must return the attacker IP. Then browse
-to `http://example.lab` on the victim and the attack flow above plays out.
-
 ## Captured data
 
 Stored at `backend-malicious/captured_credentials.json` and served unauthenticated via
 `GET /api/auth/logs`. Fields: email, password (plaintext), source IP, user agent,
 timezone, screen resolution, language, platform, timestamp.
-
-```bash
-cat backend-malicious/captured_credentials.json | jq '.[] | {email, password, timezone}'
-curl http://localhost:5000/api/auth/logs | jq '.credentials[] | {email, password}'
-```
 
 ## Legit vs malicious
 
