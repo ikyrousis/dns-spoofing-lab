@@ -5,6 +5,8 @@ a real portal and its auth API, plus a phishing clone that captures credentials 
 redirects back to the real portal. DNS spoofing itself is external to this stack
 and is carried out with tools such as Ettercap or dnsmasq.
 
+Built for the University of Piraeus (Network Security MSc course), December 2025.
+
 > **For educational purposes only.** Use it to learn how DNS spoofing works in an isolated
 > lab network you own and control - never against real domains, networks, or people.
 
